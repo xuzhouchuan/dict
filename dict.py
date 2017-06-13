@@ -36,6 +36,10 @@ def get_youdao_meaning(word, q_yinbiao=False):
     page_content = commands.getoutput("curl -s http://youdao.com/w/eng/%s" % word)
     soup =  BeautifulSoup(page_content, "html.parser")
     meaning_tag = soup.find(id="phrsListTab")
+    if meaning_tag is None:
+        if q_yinbiao:
+            return None, None
+        return None
     meaning_li = meaning_tag.find_all('li')
     meanings = [ele.string for ele in meaning_li \
             if ele.string is not None and ele.string != '']
@@ -60,13 +64,14 @@ if __name__ == '__main__':
         with open(input_filename) as fh:
             lines = fh.readlines()
             for line in lines:
-                segs = line.split('\t\t')
+                segs = line.split()
                 word = segs[0]
-                frequency = segs[1]
-                attr = segs[2]
                 meanings = get_youdao_meaning(word)
-                print word
-                ofh.write(u"%s\t%s\n" % (line.strip(), u'|'.join(meanings)))
+                if meanings is not None:
+                    print word
+                    ofh.write(u"%s\t%s\n" % (line.strip(), u'|'.join(meanings)))
+                else:
+                    print "abort %s!!!" % word
         ofh.close()
         print "successful, output file is:%s" % output_filename
         sys.exit(0)
@@ -76,6 +81,9 @@ if __name__ == '__main__':
         word = arguments["-w"]
         if arguments["--youdao"]:
             yinbiaos,meanings = get_youdao_meaning(word,True)
+            if meanings is None:
+                print "can't get meaning on online youdao.com"
+                sys.exit(0)
             for key, value in yinbiaos.iteritems():
                 print "%s:%s" % (key, value)
             for mean in meanings:
